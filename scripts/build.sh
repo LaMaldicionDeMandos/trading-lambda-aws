@@ -1,2 +1,2 @@
 #!/bin/bash -
-sam build --template ./template.yaml --build-dir ./build -u
+sam build --parameter-overrides ParameterKey=InvertirOnlinePassword,ParameterValue=$INVERTIRONLINE_PASSWORD,ParameterKey=InvertirOnlineUsername,ParameterValue=$INVERTIRONLINE_USERNAME --template ./template.yaml --build-dir ./build -u
