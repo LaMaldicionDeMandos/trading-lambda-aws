@@ -44,8 +44,26 @@ Resources:
                         Method: POST
             Layers:
                 - !Ref TradingCommonFunctions
+    GetIndexes:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: ./indexes
+            Handler: get_indexes.get_indexes
+            Runtime: python3.6
+            Role: 'arn:aws:iam::382744615649:role/service-role/invertir_lambda_role' #Tiene permisos para acceder a S3
+            Events:
+                getSharesHistory:
+                    Type: Api
+                    Properties:
+                        Path: /indexes
+                        Method: GET
+            Layers:
+                - !Ref TradingCommonFunctions
 
 Outputs:
     GetShareHistory:
       Description: "GetShareHistory Lambda Function ARN"
       Value: !GetAtt GetShareHistory.Arn
+    GetIndexes:
+        Description: "GetIndexes Lambda Function ARN"
+        Value: !GetAtt GetIndexes.Arn
