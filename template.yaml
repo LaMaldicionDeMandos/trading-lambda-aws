@@ -7,6 +7,15 @@ Parameters:
     InvertirOnlineUsername:
         Type: String
         Default: username
+    targetStage:
+        Description: Define stage to which Lambdas/API Gateways should be deployed.
+        Type: String
+        Default: dev
+        AllowedValues:
+            - dev
+            - test
+            - prod
+        ConstraintDescription: Only stages dev, test, prod are allowed
 Description: >
     AWS Serverless Application for trading
 
@@ -36,12 +45,12 @@ Resources:
                 Variables:
                     INVERTIRONLINE_PASSWORD: !Ref InvertirOnlinePassword
                     INVERTIRONLINE_USERNAME: !Ref InvertirOnlineUsername
-            Events:
-                getSharesHistory:
-                    Type: Api
-                    Properties:
-                        Path: /history/{index}/{share}
-                        Method: POST
+            #Events:
+            #    getSharesHistory:
+            #        Type: Api
+            #        Properties:
+            #            Path: /history/{index}/{share}
+            #            Method: POST
             Layers:
                 - !Ref TradingCommonFunctions
     GetIndexes:
@@ -56,10 +65,50 @@ Resources:
                     Type: Api
                     Properties:
                         Path: /indexes
-                        Method: GET
+                        Method: get
+                        RestApiId:
+                            Ref: TradingRestApi
             Layers:
                 - !Ref TradingCommonFunctions
 
+    TradingRestApi:
+        Type: AWS::Serverless::Api
+        Properties:
+            Name: TradingRestApi
+            StageName: !Ref targetStage
+            DefinitionBody:
+                swagger: "2.0"
+                info:
+                    title: TradingApiGateway
+                    description: Rest Api for trading app
+                    version: 1.0.0
+                definitions:
+                    Empty:
+                        type: object
+                        title: Empty Schema
+                paths:
+                    "/indexes":
+                        get:
+                            produces:
+                                - application/json
+                            responses:
+                                '200':
+                                    description: 200 response
+                                    schema:
+                                        $ref: "#/definitions/Empty"
+                            x-amazon-apigateway-integration:
+                                responses:
+                                    default:
+                                        statusCode: 200
+                                        responseTemplates:
+                                            "application/json": ""
+                                # NOTE: ${LambdaFunction} must match the Lambda resourcename
+                                uri:
+                                    Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetIndexes.Arn}/invocations"
+
+                                passthroughBehavior: when_no_match
+                                httpMethod: POST
+                                type: aws
 Outputs:
     GetShareHistory:
       Description: "GetShareHistory Lambda Function ARN"
