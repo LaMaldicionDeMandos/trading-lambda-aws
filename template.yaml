@@ -73,6 +73,7 @@ Resources:
 
     TradingRestApi:
         Type: AWS::Serverless::Api
+        StageName: !Ref targetStage
         Properties:
             Name: TradingRestApi
             StageName: !Ref targetStage
@@ -118,6 +119,8 @@ Resources:
                         in: "header"
     ApiKey:
         Type: AWS::ApiGateway::ApiKey
+        DependsOn:
+            - TradingRestApi
         Properties:
             Name: !Join ["", [{"Ref": "AWS::StackName"}, "-apikey"]]
             Description: "CloudFormation API Key V1"
@@ -125,6 +128,8 @@ Resources:
             GenerateDistinctId: false
     ApiUsagePlan:
         Type: "AWS::ApiGateway::UsagePlan"
+        DependsOn:
+            - TradingRestApi
         Properties:
             ApiStages:
                 - ApiId: !Ref TradingRestApi
@@ -145,3 +150,5 @@ Outputs:
         Value: !GetAtt GetIndexes.Arn
     ApiKeyID:
         Value: !Ref ApiKey
+    Stage:
+        Value: !Ref targetStage
