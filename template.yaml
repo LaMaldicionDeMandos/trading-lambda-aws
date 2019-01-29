@@ -96,6 +96,8 @@ Resources:
                                     description: 200 response
                                     schema:
                                         $ref: "#/definitions/Empty"
+                            security:
+                            - api_key: []
                             x-amazon-apigateway-integration:
                                 responses:
                                     default:
@@ -109,6 +111,31 @@ Resources:
                                 passthroughBehavior: when_no_match
                                 httpMethod: POST
                                 type: aws
+                securityDefinitions:
+                    api_key:
+                        type: "apiKey"
+                        name: "x-api-key"
+                        in: "header"
+    ApiKey:
+        Type: AWS::ApiGateway::ApiKey
+        Properties:
+            Name: !Join ["", [{"Ref": "AWS::StackName"}, "-apikey"]]
+            Description: "CloudFormation API Key V1"
+            Enabled: true
+            GenerateDistinctId: false
+    ApiUsagePlan:
+        Type: "AWS::ApiGateway::UsagePlan"
+        Properties:
+            ApiStages:
+                - ApiId: !Ref TradingRestApi
+                  Stage: !Ref targetStage
+            Description: !Join [" ", [{"Ref": "AWS::StackName"}, "usage plan"]]
+    ApiUsagePlanKey:
+        Type: "AWS::ApiGateway::UsagePlanKey"
+        Properties:
+            KeyId: !Ref ApiKey
+            KeyType: API_KEY
+            UsagePlanId: !Ref ApiUsagePlan
 Outputs:
     GetShareHistory:
       Description: "GetShareHistory Lambda Function ARN"
@@ -116,3 +143,5 @@ Outputs:
     GetIndexes:
         Description: "GetIndexes Lambda Function ARN"
         Value: !GetAtt GetIndexes.Arn
+    ApiKeyID:
+        Value: !Ref ApiKey
