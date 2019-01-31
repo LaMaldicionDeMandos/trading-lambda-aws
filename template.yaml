@@ -45,12 +45,14 @@ Resources:
                 Variables:
                     INVERTIRONLINE_PASSWORD: !Ref InvertirOnlinePassword
                     INVERTIRONLINE_USERNAME: !Ref InvertirOnlineUsername
-            #Events:
-            #    getSharesHistory:
-            #        Type: Api
-            #        Properties:
-            #            Path: /history/{index}/{share}
-            #            Method: POST
+            Events:
+                getSharesHistory:
+                    Type: Api
+                    Properties:
+                        Path: /history/{index}/{share}
+                        Method: post
+                        RestApiId:
+                            Ref: TradingRestApi
             Layers:
                 - !Ref TradingCommonFunctions
     GetIndexes:
@@ -110,6 +112,31 @@ Resources:
                                     Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetIndexes.Arn}/invocations"
 
                                 passthroughBehavior: when_no_match
+                                httpMethod: POST
+                                type: aws
+                    "/history/{index}/{share}":
+                        post:
+                            produces:
+                                - application/json
+                            responses:
+                                '201':
+                                    description: 201 response
+                                    schema:
+                                        $ref: "#/definitions/Empty"
+                            security:
+                                - api_key: []
+                            x-amazon-apigateway-integration:
+                                passthroughBehavior: "WHEN_NO_TEMPLATES"
+                                requestTemplates:
+                                    "application/json": "{\n\t\"index\": \"$input.params('index')\", \n\t\"stock_share\": \"$input.params('share')\",\n\t\"from\": \"$input.params('from')\",\n\t\"to\": \"$input.params('to')\"\n}"
+                                responses:
+                                    default:
+                                        statusCode: 201
+                                        responseTemplates:
+                                            "application/json": ""
+                                # NOTE: ${LambdaFunction} must match the Lambda resourcename
+                                uri:
+                                    Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetShareHistory.Arn}/invocations"
                                 httpMethod: POST
                                 type: aws
                 securityDefinitions:
