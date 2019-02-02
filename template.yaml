@@ -91,6 +91,24 @@ Resources:
             Layers:
                 - !Ref TradingCommonFunctions
 
+    Shares:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: ./history
+            Handler: get_shares.get_share
+            Runtime: python3.6
+            Role: 'arn:aws:iam::382744615649:role/service-role/invertir_lambda_role' #Tiene permisos para acceder a S3
+            Events:
+                sharesbyIndex:
+                    Type: Api
+                    Properties:
+                        Path: /history/{index}/{share}
+                        Method: get
+                        RestApiId:
+                            Ref: TradingRestApi
+            Layers:
+                - !Ref TradingCommonFunctions
+
     TradingRestApi:
         Type: AWS::Serverless::Api
         StageName: !Ref targetStage
@@ -157,6 +175,34 @@ Resources:
                                     Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetShareHistory.Arn}/invocations"
                                 httpMethod: POST
                                 type: aws
+                        get:
+                            produces:
+                                - application/json
+                            responses:
+                                '200':
+                                    description: 200 response
+                                    schema:
+                                        $ref: "#/definitions/Empty"
+                                '404':
+                                    description: Index or share not found
+                            security:
+                                - api_key: []
+                            x-amazon-apigateway-integration:
+                                passthroughBehavior: "WHEN_NO_TEMPLATES"
+                                requestTemplates:
+                                    "application/json": "{\n\t\"index\": \"$input.params('index')\",\n\t\"share\": \"$input.params('share')\"\n}"
+                                responses:
+                                    default:
+                                        statusCode: 200
+                                        responseTemplates:
+                                            "application/json": ""
+                                    ".+":
+                                        statusCode: 404
+                                # NOTE: ${LambdaFunction} must match the Lambda resourcename
+                                uri:
+                                    Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Shares.Arn}/invocations"
+                                httpMethod: POST
+                                type: aws
                     "/indexes/{index}/shares":
                         get:
                             produces:
@@ -186,6 +232,7 @@ Resources:
                                     Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SharesByIndex.Arn}/invocations"
                                 httpMethod: POST
                                 type: aws
+
                 securityDefinitions:
                     api_key:
                         type: "apiKey"
@@ -223,8 +270,11 @@ Outputs:
         Description: "GetIndexes Lambda Function ARN"
         Value: !GetAtt GetIndexes.Arn
     SharesByIndex:
-        Description: "GetIndexes Lambda Function ARN"
-        Value: !GetAtt GetIndexes.Arn
+        Description: "GetShareNamesByIndex Lambda Function ARN"
+        Value: !GetAtt SharesByIndex.Arn
+    Shares:
+        Description: "GetShare Lambda Function ARN"
+        Value: !GetAtt Shares.Arn
     ApiKeyID:
         Value: !Ref ApiKey
     Stage:
